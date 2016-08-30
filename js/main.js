@@ -1,24 +1,28 @@
 // TODO:
-// 1. Reseting position and restart play
-// 2. Stoping play
-// 3. Continue play after stop
-ChessPlayer = {
-    interval: null,
-    started: false,
-    paused: false,
-    moves: [],
-    currentMove: 0,
-    init: function(boardId) {
+// DONE 1. Reseting position and restart play
+// DONE 2. Stoping play
+// DONE 3. Continue play after stop
+// 4. Multiple boards
+// 5. Board customisation
+// 6. Getting data from other sources
+// 7. If on reseting we have stoped game, dont start it after reseted
+function ChessPlayer() {
+    this.interval = null;
+    this.started = false;
+    this.paused = false;
+    this.moves = [];
+    this.currentMove = 0;
+    this.init = function(boardId) {
         this.board = ChessBoard(boardId, 'start');
         this.game = new Chess();
 
         return this;
-    },
-    trim: function(str) {
+    };
+    this.trim = function(str) {
         return str.replace(/^\s+|\s+$/g, '');
-    },
-    header: {},
-    set_header: function(args) {
+    };
+    this.header = {};
+    this.set_header = function(args) {
         for (var i = 0; i < args.length; i += 2) {
           if (typeof args[i] === 'string' &&
               typeof args[i + 1] === 'string') {
@@ -26,14 +30,13 @@ ChessPlayer = {
           }
         }
         return this.header;
-    },
-    read: function(textareaId) {
-        var pgn = $(textareaId).val();
+    };
+    this.read = function(pgn) {
         var t = this;
 
-    function mask(str) {
-        return str.replace(/\\/g, '\\');
-      }
+        function mask(str) {
+            return str.replace(/\\/g, '\\');
+        }
 
       function has_keys(object) {
         for (var key in object) {
@@ -119,16 +122,18 @@ ChessPlayer = {
       moves = moves.join(',').replace(/,,+/g, ',').split(',');
 
         return moves;
-    },
-    play: function(textareaId) {
+    };
+    this.play = function(pgn) {
         var that = this;
+
+        console.log(pgn);
 
         if (that.started && that.paused) {
             that.paused = false;
         }
 
         if (!that.started) {
-            that.moves = that.read(textareaId);
+            that.moves = that.read(pgn);
 
             that.interval = setInterval(function() {
                 if(that.paused) return;
@@ -139,25 +144,48 @@ ChessPlayer = {
             }, 500);
             that.started = true;
         }
-        
-    },
-    stop: function() {
+    };
+    this.stop = function() {
         var that = this;
 
         if (this.started) {
             that.paused = true;
         }
-    }
+    };
+    this.reset = function() {
+        var that = this;
+
+        if (that.started) {
+            // First of all pause game
+            that.paused = true;
+
+            that.currentMove = 0;
+            that.game.reset();
+            that.board.start(false);
+
+            that.paused = false;
+        }
+    };
 };
 
 (function($){
-    var player = ChessPlayer.init('board');
+    $('.board').each(function(){
+        var boardId = this.id
+        var player = new ChessPlayer();
+        player.init(boardId);
+        
+        var moves = $('#' + this.getAttribute('data-moves')).val();
 
-    $('#start').on('click', function(){
-        player.play('#moves');
-    });
+        $('#'+boardId+'_start').on('click', function(){
+            player.play(moves);
+        });
 
-    $('#stop').on('click', function(){
-        player.stop();
+        $('#'+boardId+'_stop').on('click', function(){
+            player.stop();
+        });
+
+        $('#'+boardId+'_reset').on('click', function(){
+            player.reset();
+        });
     });
 })(jQuery);
