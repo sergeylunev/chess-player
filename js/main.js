@@ -3,6 +3,11 @@
 // 2. Stoping play
 // 3. Continue play after stop
 ChessPlayer = {
+    interval: null,
+    started: false,
+    paused: false,
+    moves: [],
+    currentMove: 0,
     init: function(boardId) {
         this.board = ChessBoard(boardId, 'start');
         this.game = new Chess();
@@ -116,23 +121,43 @@ ChessPlayer = {
         return moves;
     },
     play: function(textareaId) {
-        var moves = this.read(textareaId);
-        var index = 0;
         var that = this;
 
-        setInterval(function() {
-            that.game.move(moves[index]);
-            that.board.position(that.game.fen());
+        if (that.started && that.paused) {
+            that.paused = false;
+        }
 
-            index = index + 1;
-        }, 500);
+        if (!that.started) {
+            that.moves = that.read(textareaId);
+
+            that.interval = setInterval(function() {
+                if(that.paused) return;
+
+                that.game.move(that.moves[that.currentMove]);
+                that.board.position(that.game.fen());
+                that.currentMove = that.currentMove + 1;
+            }, 500);
+            that.started = true;
+        }
+        
+    },
+    stop: function() {
+        var that = this;
+
+        if (this.started) {
+            that.paused = true;
+        }
     }
 };
 
 (function($){
     var player = ChessPlayer.init('board');
 
-    $('#submit').on('click', function(){
+    $('#start').on('click', function(){
         player.play('#moves');
+    });
+
+    $('#stop').on('click', function(){
+        player.stop();
     });
 })(jQuery);
